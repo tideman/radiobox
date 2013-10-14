@@ -1,0 +1,210 @@
+<!doctype html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title>radiobox</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width">
+        <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
+        <link rel="stylesheet" href="styles/db4badba.main.css">
+        <script src="scripts/vendor/f7f27360.modernizr.js"></script>
+    </head>
+    <body>
+        <!--[if lt IE 10]>
+            <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
+        <![endif]-->
+
+
+        <div class="hero-unit">
+          <h1>Radiobox</h1>
+          <div class="page"></div>
+        </div>
+
+
+        <!-- Google Analytics: change UA-XXXXX-X to be your site's ID. -->
+        <script>
+            (function(b,o,i,l,e,r){b.GoogleAnalyticsObject=l;b[l]||(b[l]=
+            function(){(b[l].q=b[l].q||[]).push(arguments)});b[l].l=+new Date;
+            e=o.createElement(i);r=o.getElementsByTagName(i)[0];
+            e.src='//www.google-analytics.com/analytics.js';
+            r.parentNode.insertBefore(e,r)}(window,document,'script','ga'));
+            ga('create','UA-XXXXX-X');ga('send','pageview');
+        </script>
+
+        <script type="text/template" id="broadcast-list-template">
+            <table class="table condensed">
+             <thead> 
+                  <tr>
+                    <th>Programma</th>
+                    <th>Aflevering</th>
+                    <th>MP3</th>
+                  </tr>
+             </thead>
+             <tbody>
+                  <% _.each(broadcasts, function(broadcast) {%>
+                    <tr>
+                      <td><%= broadcast.get("name") %></td>
+                      <td><%= broadcast.get("description") %></td>
+                      <td>
+                      <% if (broadcast.get("broadcaststream")) { %>    
+                      <audio id="player2" src=<%= broadcast.get("broadcaststream")[0].url %>
+                   type="audio/mp3" controls="controls">    
+</audio>
+<% } %>
+</td>
+                    </tr>
+                  <% });%>  
+             </tbody>
+             </table>
+        </script>
+
+        <script type="text/template" id="programs-list-template">
+            <table class="table striped">
+             <thead> 
+                  <tr>
+                    <th>Programma</th>
+     
+                  </tr>
+             </thead>
+             <tbody>
+                  <% _.each(programs, function(program) {%>
+                    <tr>
+                      <td><a href="#broadcasts/<%= program.get("id") %>"><%= program.get("name") %></a></td>
+               
+                    </tr>
+                  <% });%>  
+             </tbody>
+             </table>
+        </script>
+
+        <script type="text/template" id="search-program-template">
+            <label><%=search_label %></label>
+            <input type="text" id="search_input">
+            <input type="button" id="search_button" class="btn btn-danger" value="Search" />
+        </script>
+
+        <script src="scripts/6f75a291.vendor.js"></script>
+        <script>
+            $.ajaxPrefilter( function( options, originalOptions, jqXHR) {
+              options.url = 'http://radiobox2.omroep.nl' + options.url;
+            });
+
+            var Programs = Backbone.Collection.extend ({
+              initialize : function(models, options){
+                  this.query = options.query;
+                  this.url = "/programme/search.json?q=name~'" + this.query + "%'";
+              },
+              url: this.url,
+              parse : function(response) {
+                console.log("jaaa:" + this.query);
+                return response.results;
+              }
+
+            });
+
+            var ProgramList = Backbone.View.extend({
+              el: '.page',
+              initialize : function(models, options){
+                  this.query = options.query;
+
+              },
+              render: function() {
+
+                var programs = new Programs([], {query: this.query});
+                var that =this; 
+                programs.fetch({
+                  success: function(broadcasts) {
+                    var template = _.template($('#programs-list-template').html(), {programs: programs.models});
+                    that.$el.html(template);
+                }
+              })  
+                
+              }
+            });
+
+            var SearchView = Backbone.View.extend({
+              el: '.page',
+              initialize: function(){
+                this.render();
+              },
+              render: function(){
+                  var variables = { search_label: "Zoek een programma" };
+                  var template = _.template( $("#search-program-template").html(), variables);
+                  this.$el.html( template );
+              },
+              events: {
+                  "click input[type=button]": "doSearch"
+              },
+              doSearch: function( event ){
+                  var programs = new ProgramList([], {query: $("#search_input").val()})
+                  programs.render();
+              }
+            });
+            
+
+            var Broadcasts = Backbone.Collection.extend ({
+            initialize: function(models, options) {
+              this.prg_id = options.prg_id;
+              this.url = "/broadcast/search.json?q=/programme.id:'" + this.prg_id + "' AND startdatetime>:2013-10-13 09:00:00' AND stopdatetime<:'2013-10-13 21:00:00'&order=startdatetime:desc";
+            },  
+            url: this.url,
+            parse : function(response){
+                return response.results; 
+
+              }
+            })
+
+           var BroadcastList = Backbone.View.extend({
+              el: '.page',
+              initialize: function(models, options){
+                this.prg_id = options.prg_id;
+                console.log("prg_id:" + this.prg_id);
+              },
+              render: function() {
+               var that =this; 
+              var broadcasts = new Broadcasts([], {prg_id: this.prg_id});
+              broadcasts.fetch({
+                  success: function(broadcasts) {
+                    var template = _.template($('#broadcast-list-template').html(), {broadcasts: broadcasts.models});
+                    that.$el.html(template);
+                    $('audio,video').mediaelementplayer();
+                  }
+              })  
+                
+              }
+            });
+
+            var Router = Backbone.Router.extend({
+                routes: {
+                    '': 'search',
+                    'broadcasts/:prg_id': 'broadcastlist'
+                }
+            });
+
+            var router = new Router();
+          
+            router.on('route:broadcastlist', function(prg_id) {
+               
+                var broadcastlist = new BroadcastList([], {prg_id: prg_id});
+                broadcastlist.render();
+            });
+            router.on('route:search', function() {
+                var search_view = new SearchView();
+                search_view.render();
+            });
+           
+
+
+
+            Backbone.history.start();
+            
+
+        </script>
+
+        <script src="scripts/b6c3df09.main.js"></script>
+</body>
+</html>
