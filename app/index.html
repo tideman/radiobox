@@ -44,18 +44,13 @@
 
         <script type="text/template" id="broadcast-list-template">
             <table class="table condensed">
-             <thead> 
-                  <tr>
-                    <th>Programma</th>
-                    <th>Aflevering</th>
-                    <th>MP3</th>
-                  </tr>
-             </thead>
              <tbody>
                   <% _.each(broadcasts, function(broadcast) {%>
                     <tr>
-                      <td><%= broadcast.get("name") %></td>
-                      <td><%= broadcast.get("description") %></td>
+                      <td colspan="2"><h2><%= broadcast.get("name") %></h2></td>
+                     </tr>
+                     <tr> 
+                      <td><img width="130" src=<%= broadcast.get("image").url%> alt="" title="" align="left"/><%= broadcast.get("description") %></td>
                       <td>
                       <% if (broadcast.get("broadcaststream")) { %>    
                       <audio id="player2" src=<%= broadcast.get("broadcaststream")[0].url %>
@@ -112,7 +107,6 @@
               },
               url: this.url,
               parse : function(response) {
-                console.log("jaaa:" + this.query);
                 return response.results;
               }
 
@@ -174,7 +168,7 @@
               el: '.page',
               initialize: function(models, options){
                 this.prg_id = options.prg_id;
-                console.log("prg_id:" + this.prg_id);
+    
               },
               render: function() {
                var that =this; 
